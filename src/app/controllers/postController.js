@@ -28,7 +28,7 @@ exports.index = asyncHandler(async (req, res) => {
 })
 
 exports.store = asyncHandler(async (req, res) => {
-  const { title, body } = req.body
+  const { title, body, status } = req.body
   if (!title || !body) {
     res
       .status(402)
@@ -36,9 +36,10 @@ exports.store = asyncHandler(async (req, res) => {
   }
   try {
     const post = await Post.create({
+      user: req.user.id,
       title,
       body,
-      user: req.user.id,
+      status,
     })
     if (post) {
       res.status(201).json({
@@ -108,6 +109,11 @@ exports.destroy = asyncHandler(async (req, res) => {
       res
         .status(403)
         .json({ message: 'not access to delete data' || error.message })
+    }
+
+    const deletePost = await Post.findByIdAndDelete(postId)
+    if (deletePost) {
+      res.status(200).json({ message: 'delete post success', data: deletePost })
     }
   } catch (error) {
     res.status(500).json({ message: error.message })

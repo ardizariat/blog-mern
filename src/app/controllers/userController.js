@@ -1,4 +1,5 @@
 const User = require('../models/userModel')
+const Post = require('../models/postModel')
 const asyncHandler = require('express-async-handler')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
@@ -38,13 +39,16 @@ exports.register = asyncHandler(async (req, res) => {
     }
 
     if (newUser) {
-      res.status(201).json({
-        message: 'user created',
-        data: user,
-      })
+      res
+        .status(201)
+        .cookie('token', user.token, {
+          httpOnly: true,
+        })
+        .json({
+          message: 'user created',
+          data: user,
+        })
     }
-
-    res.status(201).json({})
   } catch (error) {
     res.status(400).json({ message: error.message })
   }
@@ -62,10 +66,16 @@ exports.login = asyncHandler(async (req, res) => {
       email: user.email,
       token: generateToken(user.id),
     }
-    res.status(200).json({
-      message: 'login success',
-      data: userLogin,
-    })
+
+    res
+      .status(200)
+      .cookie('token', userLogin.token, {
+        httpOnly: true,
+      })
+      .json({
+        message: 'login success',
+        data: userLogin,
+      })
   } else {
     res.status(404).json({ message: 'user not found' })
   }
@@ -73,14 +83,31 @@ exports.login = asyncHandler(async (req, res) => {
 
 exports.me = asyncHandler(async (req, res) => {
   try {
-    const { _id, name, email } = await User.findById(req.user.id)
+    const { id, name, email } = await User.findById(req.user.id)
+    const posts = await Post.find({ user: id })
+
     res.status(200).json({
       message: 'get data user login',
-      data: { id: _id, name, email },
+      user: { id, name, email },
+      posts,
     })
   } catch (error) {
     res.status(401).json({ message: 'User not found' || error.message })
   }
+})
+
+exports.logout = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id)
+  if (!user) {
+    res.status(401).json({ message: 'User not authorized' || error.message })
+  }
+  res
+    .status(200)
+    .cookie('token', '', {
+      httpOnly: true,
+      expires: new Date(0),
+    })
+    .json({ message: 'logout' })
 })
 
 const generateToken = (id) => {

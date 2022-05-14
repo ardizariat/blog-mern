@@ -18,6 +18,10 @@ const postSchema = new Schema(
       required: true,
       min: 5,
     },
+    status: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 )
